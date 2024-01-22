@@ -1,36 +1,19 @@
 from fastapi import FastAPI, HTTPException
-
-from Infrastructure.Repositories.MongoRepository import *
+import json
 from Infrastructure.Repositories.GPTRepository import *
 
-mongo = MongoRepository(host='localhost', port=27017, database='Cards', collection='game')
-gpt = GPTRepository()
 
 app = FastAPI()
-
+gpt = GPTRepository()
 
 @app.get('/api/ai/move')
-async def get_ai_move(game_id: int):
-    game = None
-
-    try:
-        if not mongo.game_exists(game_id):
-            raise HTTPException(detail='Game not found', status_code=404)
-
-        game = mongo.get_game(game_id)
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-    generated_success = False
+def get_ai_move(game_type, bot_cards, cards_in_game, trump_card, mover):
     gpt_response = None
-
-    while not generated_success:
+    while gpt_response is None:
         try:
-            gpt_response = await gpt.get_response(game)
-            generated_success = True
+            gpt_response = gpt.get_response(game_type, bot_cards, cards_in_game, trump_card, mover)
         except:
             pass
 
     print(gpt_response)
-    return gpt_response
+    return json.loads(gpt_response)

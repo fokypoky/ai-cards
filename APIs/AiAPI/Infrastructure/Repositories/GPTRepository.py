@@ -1,6 +1,4 @@
 import g4f
-from Models.Game import *
-
 
 class GPTRepository:
     def __init__(self) -> None:
@@ -17,25 +15,30 @@ class GPTRepository:
             '''
         }
 
-    async def get_response(self, game_object: Game) -> str:
-        request = await self.build_request(game_object)
-        return g4f.ChatCompletion.create(
-            model='gpt-3.5-turbo',
-            messages=[{"role": "user", "content": request}]
-        )
+    def get_response(self, game_type: str, bot_cards: [], cards_in_game: [], trump_card: str, mover: str) -> str:
+        try: 
+            request = self.build_request(game_type, bot_cards, cards_in_game, trump_card, mover)
+            return g4f.ChatCompletion.create(
+                model='gpt-3.5-turbo',
+                messages=[{"role": "user", "content": request}]
+            )
+        except Exception as e:
+            print(e)
+            return None
 
-    async def build_request(self, game_object: Game) -> str:
-        if game_object.game_type == 'durak':
-            return (str(self.base_requests[game_object.game_type]) +
-                    f'  Your cards JSON: {game_object.bot_cards}'
-                    f'. Played cards JSON: {game_object.cards_in_game}'
-                    f'. The trump card is {game_object.trump_card}'
+    def build_request(self, game_type: str, bot_cards: [], cards_in_game: [], trump_card: str, mover: str) -> str:
+        if game_type == 'durak':
+            return (str(self.base_requests[game_type]) +
+                    f'  Your cards JSON: {bot_cards}'
+                    f'. Played cards JSON: {cards_in_game}'
+                    f'. The trump card is {trump_card}'
                     f'. Make a move and provide your answer as JSON'
-                    f'. Mover is {game_object.mover}'
-                    '. Give answer as JSON like ''{"cards": ["card": "your card value", "beaten": '
+                    f'. Mover is {mover}'
+                    '. Give answer as JSON ''{"cards": ["card": "your card value", "beaten": '
                     ' "the card value you are beating"],'
-                    '  "move": "your action"}'''
-                    '. Your action is a move type - give, take or beaten(ends the current round)'
+                    '  "action": "your action"}'''
+                    '. Your action is a move type - give, take, beaten(ends the current round), init(starts next round when you are mover), '
+                    ' add(when all played cards are beaten) '
                     '. You can only make move "beaten" when'
-                    '  you are mover(mover is "bot")'
+                    '  you are mover(mover is "bot"). Leave the array empty, just specify the action if your action is "beaten"'
                     f'. Give a short answer - JSON only')
