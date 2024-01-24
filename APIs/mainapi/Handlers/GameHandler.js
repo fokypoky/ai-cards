@@ -8,12 +8,11 @@ class GameHandler {
             case 'take':
                 return this.moveTake(game);
             case 'beaten':
-                return this.moveBeaten(game);
-                case 'init':
+                return this.moveBeaten(game, move);
             case 'add':
                 return this.moveAdd(game, move);
             case 'init':
-                return this.moveAdd(game, move);
+                return this.moveInit(game, move);
             default:
                 throw new Error(`Unknown "${move.action}" action`);
         }
@@ -35,23 +34,6 @@ class GameHandler {
         gameCopy.move_order = gameCopy.move_order === 'bot' ? 'player' : 'bot';
 
         return gameCopy;
-    }
-
-    addCardsToCollection(collection, cards, owner) {
-        cards.forEach((mcard) => {
-            collection.push({
-                card: mcard.card,
-                owner,
-                beaten: 'none'
-            });
-        })
-    }
-
-    removeCardsFromCollection(collection, cards) {
-        cards.forEach((card) => {
-            const foundCard = collection.find((c) => c.card === card.card);
-            collection.splice(collection.indexOf(foundCard), 1);
-        });
     }
 
     moveInit(game, move) {
@@ -89,18 +71,57 @@ class GameHandler {
         gameCopy.move_order = gameCopy.move_order === 'bot' ? 'player' : 'bot';
         gameCopy.mover = gameCopy.move_order;
 
+        this.appendCardsToPlayers(gameCopy);
+
         return gameCopy;
     }
 
-    moveBeaten(game) {
+    moveBeaten(game, move) {
         const gameCopy = JSON.parse(JSON.stringify(game));
+
+        if (move.cards.length !== 0) {
+            const moverCards = gameCopy[gameCopy.mover + '_cards'];
+            move.cards.forEach(card => {
+                moverCards.splice(moverCards.indexOf(card.card), 1);
+            });
+        }
 
         gameCopy.cards_in_game = [];
         gameCopy.move_order = gameCopy.move_order === 'bot' ? 'player' : 'bot';
         gameCopy.mover = gameCopy.move_order;
         
+        this.appendCardsToPlayers(gameCopy);
+
         return gameCopy;
     }
+
+    appendCardsToPlayers(game) {
+        while (game.player_cards.length < 6) {
+            game.player_cards.push(game.cards_stack.pop());
+        }
+
+        while (game.bot_cards.length < 6) {
+            game.bot_cards.push(game.cards_stack.pop());
+        }
+    }
+
+    addCardsToCollection(collection, cards, owner) {
+        cards.forEach((mcard) => {
+            collection.push({
+                card: mcard.card,
+                owner,
+                beaten: 'none'
+            });
+        })
+    }
+
+    removeCardsFromCollection(collection, cards) {
+        cards.forEach((card) => {
+            const foundCard = collection.find((c) => c.card === card.card);
+            collection.splice(collection.indexOf(foundCard), 1);
+        });
+    }
+    
 }
 
 module.exports = GameHandler;
