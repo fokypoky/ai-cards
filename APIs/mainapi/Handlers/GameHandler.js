@@ -95,12 +95,24 @@ class GameHandler {
         return gameCopy;
     }
 
+    getWinner(game) {
+        if (game.cards_stack.length === 0) {
+            if (game.player_cards.length === 0) {
+                return 'player';
+            }
+            if (game.bot_cards.length === 0) {
+                return 'bot';
+            }
+        }
+        return undefined;
+    }
+
     appendCardsToPlayers(game) {
-        while (game.player_cards.length < 6) {
+        while (game.player_cards.length < 6 && game.cards_stack.length > 0) {
             game.player_cards.push(game.cards_stack.pop());
         }
 
-        while (game.bot_cards.length < 6) {
+        while (game.bot_cards.length < 6 && game.cards_stack.length > 0) {
             game.bot_cards.push(game.cards_stack.pop());
         }
     }
