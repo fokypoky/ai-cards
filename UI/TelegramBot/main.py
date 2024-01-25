@@ -1,7 +1,8 @@
 import asyncio
 import logging
 
-from aiogram import F, Bot, Dispatcher, types
+import aiogram
+from aiogram import F, Bot, Dispatcher, types, methods
 from aiogram.filters.command import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -15,7 +16,7 @@ from Repositories.UsersSettingsRepository import UsersSettingsRepository
 
 logging.basicConfig(level=logging.INFO)
 
-bot_token = '6868123201:AAFC9lgLLZxZAjso2KFtTesb-Iwcda72D6A'
+bot_token = ''
 bot = Bot(bot_token)
 dp = Dispatcher()
 
@@ -23,6 +24,7 @@ games_repository = GamesRepository()
 users_repository = UsersRepository()
 user_settings_repository = UsersSettingsRepository()
 
+available_game_types = ['durak']
 
 @dp.message(Command('test'))
 async def on_test_command_received(message: types.Message) -> None:
@@ -91,7 +93,40 @@ async def on_settings_commang_received(message: types.Message) -> None:
 
 @dp.callback_query(F.data == 'settings_edit_game_type')
 async def settings_edit_game_type_callback(callback: types.CallbackQuery) -> None:
-    await callback.answer('from game type callback function')
+    builder = InlineKeyboardBuilder()
+    for type in available_game_types:
+        builder.add(types.InlineKeyboardButton(text=type, callback_data=f'set_game_type_{type}'))
+
+    await bot(aiogram.methods.EditMessageText(text='Выберите тип игры', chat_id=callback.message.chat.id,
+                                              message_id=callback.message.message_id,
+                                              reply_markup=builder.as_markup()))
+
+@dp.callback_query(F.data.startswith('set_game_type_'))
+async def set_game_type_callback(callback: types.CallbackQuery) -> None:
+    game_type = callback.data.split('_')[-1]
+
+    is_error = False
+
+    try:
+        user_settings = user_settings_repository.get(callback.from_user.id)
+        if user_settings[1] != 200:
+            is_error = True
+
+        user_settings = user_settings[0]
+        user_settings.game_type = game_type
+
+        update_result = user_settings_repository.update(user_settings)
+
+        if update_result[1] != 200:
+            is_error = True
+    except:
+        is_error = True
+
+    if is_error:
+        await bot.send_message(text='Ошибка на стороне сервера. Повторите попытку позже', chat_id=callback.message.chat.id)
+        return
+    
+    await callback.message.answer('Изменения вступили в силу')
 
 @dp.callback_query(F.data == 'settings_edit_bet')
 async def setting_edit_bet_callback(callback: types.CallbackQuery) -> None:
