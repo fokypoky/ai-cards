@@ -449,16 +449,42 @@ app.put('/api/games/:game_id/move', async (req, res) => {
     }
 
     game = gameHandler.move(game, JSON.parse(req.query['move']));
+    let winner = gameHandler.getWinner(game);
+    if (winner) {
+        const user = await usersRepository.getUserById(game._id);
+        if (winner === 'player') {
+            user.victory_count += 1;
+            user.balance += game.bet * 2;
+        } else {
+            user.lose_count -= 1;
+        }
+        await usersRepository.updateUser(user);
+        await gamesRepository.deleteById(game._id);
+        return res.status(200).json(`The game is over. The winner is ${winner}`);
+    }
 
     const aiMove = await aiRepository.getMove(game);
     const aiMoveValidationResult = gameValidator.validateMove(game, aiMove);
-    
+
     if (!aiMoveValidationResult.result) {
         console.log('ai ', aiMoveValidationResult);
         return res.status(500).json(`AI Move validation error: ${aiMoveValidationResult.error}`);
     }
 
     game = gameHandler.move(game, JSON.parse(aiMove));
+    winner = gameHandler.getWinner(game);
+    if (winner) {
+        const user = await usersRepository.getUserById(game._id);
+        if (winner === 'player') {
+            user.victory_count += 1;
+            user.balance += game.bet * 2;
+        } else {
+            user.lose_count -= 1;
+        }
+        await usersRepository.updateUser(user);
+        await gamesRepository.deleteById(game._id);
+        return res.status(200).json(`The game is over. The winner is ${winner}`);
+    }
 
     const gameUpdateResult = await gamesRepository.update(game);
     if (gameUpdateResult !== 'OK') {
